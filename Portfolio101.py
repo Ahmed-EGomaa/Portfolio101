@@ -714,4 +714,7 @@ def main():
         <p>© 2024 John Doe. Built with ❤️ using Streamlit</p>
         <p>✨ Interactive Portfolio - Click, Explore, Enjoy! ✨</p>
     </div>
-    ""
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
