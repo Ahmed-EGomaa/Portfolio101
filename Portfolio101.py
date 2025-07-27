@@ -3,10 +3,9 @@ from PIL import Image
 import base64
 from io import BytesIO
 import numpy as np
-import plotly.graph_objects as go
-import plotly.express as px
 import time
 import math
+import pandas as pd
 
 # Page configuration
 st.set_page_config(
@@ -108,22 +107,6 @@ st.markdown("""
         transform: scale(1.05);
     }
     
-    .nav-button {
-        background-color: #2E86AB;
-        color: white;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
-        margin: 0.25rem;
-        transition: all 0.3s ease;
-    }
-    
-    .nav-button:hover {
-        background-color: #1a5f7a;
-        transform: translateY(-2px);
-    }
-    
     .rotating-element {
         animation: rotate 4s linear infinite;
     }
@@ -153,6 +136,14 @@ st.markdown("""
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
     }
+    
+    .algorithm-viz {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        border: 2px solid #2E86AB;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -174,106 +165,118 @@ def create_download_link(file_path, download_filename):
         '''
 
 def create_rotating_algorithm_viz():
-    """Create an interactive rotating algorithm visualization"""
+    """Create an interactive rotating algorithm visualization using Streamlit native components"""
     st.markdown("### 🔄 Interactive Algorithm Visualization")
     
     # Algorithm selection
     algorithm = st.selectbox(
         "Choose Algorithm to Visualize:",
-        ["Bubble Sort", "Binary Search Tree", "Spiral Matrix", "Fibonacci Spiral"]
+        ["Bubble Sort", "Number Pattern", "Spiral Matrix", "Fibonacci Sequence"]
     )
     
     if algorithm == "Bubble Sort":
         create_bubble_sort_animation()
-    elif algorithm == "Binary Search Tree":
-        create_bst_visualization()
+    elif algorithm == "Number Pattern":
+        create_number_pattern()
     elif algorithm == "Spiral Matrix":
         create_spiral_matrix()
-    elif algorithm == "Fibonacci Spiral":
-        create_fibonacci_spiral()
+    elif algorithm == "Fibonacci Sequence":
+        create_fibonacci_sequence()
 
 def create_bubble_sort_animation():
-    """Animated bubble sort visualization"""
+    """Animated bubble sort visualization using Streamlit bar chart"""
+    st.markdown('<div class="algorithm-viz">', unsafe_allow_html=True)
+    
     if st.button("🚀 Start Bubble Sort Animation", key="bubble_sort"):
         data = np.random.randint(1, 100, 10)
         chart_placeholder = st.empty()
+        progress_bar = st.progress(0)
         
-        for i in range(len(data)):
-            for j in range(0, len(data) - i - 1):
+        total_steps = 0
+        n = len(data)
+        
+        # Calculate total steps for progress bar
+        for i in range(n):
+            for j in range(0, n - i - 1):
+                total_steps += 1
+        
+        current_step = 0
+        
+        for i in range(n):
+            for j in range(0, n - i - 1):
                 if data[j] > data[j + 1]:
                     data[j], data[j + 1] = data[j + 1], data[j]
                 
-                # Create animated bar chart
-                fig = px.bar(
-                    x=list(range(len(data))), 
-                    y=data,
-                    title=f"Bubble Sort - Step {i * len(data) + j + 1}",
-                    color=data,
-                    color_continuous_scale="viridis"
-                )
-                fig.update_layout(showlegend=False, height=400)
-                chart_placeholder.plotly_chart(fig, use_container_width=True)
+                # Create DataFrame for bar chart
+                df = pd.DataFrame({
+                    'Position': list(range(len(data))),
+                    'Value': data
+                })
+                
+                chart_placeholder.bar_chart(df.set_index('Position')['Value'])
+                progress_bar.progress((current_step + 1) / total_steps)
+                current_step += 1
                 time.sleep(0.1)
         
         st.success("✅ Sorting Complete!")
         st.balloons()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-def create_bst_visualization():
-    """Interactive Binary Search Tree"""
-    st.markdown("#### 🌳 Binary Search Tree Visualization")
+def create_number_pattern():
+    """Interactive number pattern visualization"""
+    st.markdown('<div class="algorithm-viz">', unsafe_allow_html=True)
+    pattern_type = st.selectbox("Choose Pattern:", ["Pascal's Triangle", "Multiplication Table", "Prime Spiral"])
     
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🎲 Generate Random Tree"):
-            st.session_state.bst_nodes = np.random.randint(1, 50, 7)
+    if pattern_type == "Pascal's Triangle":
+        rows = st.slider("Number of rows:", 3, 10, 5)
+        if st.button("🔺 Generate Pascal's Triangle", key="pascal"):
+            triangle = []
+            for i in range(rows):
+                row = [1] * (i + 1)
+                for j in range(1, i):
+                    row[j] = triangle[i-1][j-1] + triangle[i-1][j]
+                triangle.append(row)
+            
+            # Display triangle
+            for i, row in enumerate(triangle):
+                spaces = "   " * (rows - i - 1)
+                numbers = "   ".join(f"{num:2d}" for num in row)
+                st.code(f"{spaces}{numbers}")
     
-    with col2:
-        if st.button("🔄 Rotate Tree View"):
-            st.session_state.tree_rotation = st.session_state.get('tree_rotation', 0) + 45
+    elif pattern_type == "Multiplication Table":
+        size = st.slider("Table size:", 3, 12, 5)
+        if st.button("✖️ Generate Table", key="mult_table"):
+            # Create multiplication table
+            data = []
+            for i in range(1, size + 1):
+                row = []
+                for j in range(1, size + 1):
+                    row.append(i * j)
+                data.append(row)
+            
+            df = pd.DataFrame(data, 
+                            index=[f"Row {i}" for i in range(1, size + 1)],
+                            columns=[f"Col {j}" for j in range(1, size + 1)])
+            st.dataframe(df, use_container_width=True)
     
-    # Create tree visualization
-    nodes = st.session_state.get('bst_nodes', [25, 15, 35, 10, 20, 30, 40])
-    
-    # Create a simple tree layout
-    fig = go.Figure()
-    
-    # Add nodes
-    for i, node in enumerate(nodes):
-        angle = (i * 360 / len(nodes)) + st.session_state.get('tree_rotation', 0)
-        x = 2 * math.cos(math.radians(angle))
-        y = 2 * math.sin(math.radians(angle))
-        
-        fig.add_trace(go.Scatter(
-            x=[x], y=[y],
-            mode='markers+text',
-            marker=dict(size=40, color=node, colorscale='viridis'),
-            text=[str(node)],
-            textposition="middle center",
-            name=f"Node {node}"
-        ))
-    
-    fig.update_layout(
-        title="Interactive Binary Search Tree",
-        showlegend=False,
-        height=400,
-        xaxis=dict(showgrid=False, showticklabels=False),
-        yaxis=dict(showgrid=False, showticklabels=False)
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def create_spiral_matrix():
-    """Animated spiral matrix generation"""
-    size = st.slider("Matrix Size", 3, 10, 5)
+    """Animated spiral matrix generation using DataFrame display"""
+    st.markdown('<div class="algorithm-viz">', unsafe_allow_html=True)
+    size = st.slider("Matrix Size", 3, 8, 4)
     
     if st.button("🌀 Generate Spiral Matrix", key="spiral"):
-        matrix = np.zeros((size, size))
+        matrix = np.zeros((size, size), dtype=int)
         
         # Spiral generation logic
         top, bottom, left, right = 0, size - 1, 0, size - 1
         num = 1
         
         placeholder = st.empty()
+        progress = st.progress(0)
+        total_elements = size * size
         
         while top <= bottom and left <= right:
             # Fill top row
@@ -281,12 +284,11 @@ def create_spiral_matrix():
                 matrix[top][col] = num
                 num += 1
                 
-                # Animate the filling
-                fig = px.imshow(matrix, text_auto=True, aspect="auto", 
-                               color_continuous_scale="viridis")
-                fig.update_layout(title=f"Spiral Matrix Generation - Number {num-1}")
-                placeholder.plotly_chart(fig, use_container_width=True)
-                time.sleep(0.2)
+                # Show current state
+                df = pd.DataFrame(matrix)
+                placeholder.dataframe(df, use_container_width=True)
+                progress.progress(num / total_elements)
+                time.sleep(0.3)
             
             top += 1
             
@@ -295,11 +297,10 @@ def create_spiral_matrix():
                 matrix[row][right] = num
                 num += 1
                 
-                fig = px.imshow(matrix, text_auto=True, aspect="auto",
-                               color_continuous_scale="viridis")
-                fig.update_layout(title=f"Spiral Matrix Generation - Number {num-1}")
-                placeholder.plotly_chart(fig, use_container_width=True)
-                time.sleep(0.2)
+                df = pd.DataFrame(matrix)
+                placeholder.dataframe(df, use_container_width=True)
+                progress.progress(num / total_elements)
+                time.sleep(0.3)
             
             right -= 1
             
@@ -309,11 +310,10 @@ def create_spiral_matrix():
                     matrix[bottom][col] = num
                     num += 1
                     
-                    fig = px.imshow(matrix, text_auto=True, aspect="auto",
-                                   color_continuous_scale="viridis")
-                    fig.update_layout(title=f"Spiral Matrix Generation - Number {num-1}")
-                    placeholder.plotly_chart(fig, use_container_width=True)
-                    time.sleep(0.2)
+                    df = pd.DataFrame(matrix)
+                    placeholder.dataframe(df, use_container_width=True)
+                    progress.progress(num / total_elements)
+                    time.sleep(0.3)
                 
                 bottom -= 1
             
@@ -323,62 +323,55 @@ def create_spiral_matrix():
                     matrix[row][left] = num
                     num += 1
                     
-                    fig = px.imshow(matrix, text_auto=True, aspect="auto",
-                                   color_continuous_scale="viridis")
-                    fig.update_layout(title=f"Spiral Matrix Generation - Number {num-1}")
-                    placeholder.plotly_chart(fig, use_container_width=True)
-                    time.sleep(0.2)
+                    df = pd.DataFrame(matrix)
+                    placeholder.dataframe(df, use_container_width=True)
+                    progress.progress(num / total_elements)
+                    time.sleep(0.3)
                 
                 left += 1
         
         st.success("🎉 Spiral Matrix Complete!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-def create_fibonacci_spiral():
-    """Interactive Fibonacci spiral"""
-    if st.button("🌀 Generate Fibonacci Spiral", key="fibonacci"):
-        fig = go.Figure()
+def create_fibonacci_sequence():
+    """Interactive Fibonacci sequence with visualization"""
+    st.markdown('<div class="algorithm-viz">', unsafe_allow_html=True)
+    
+    if st.button("🌀 Generate Fibonacci Sequence", key="fibonacci"):
+        n = st.slider("Number of terms:", 5, 20, 10)
         
         # Generate Fibonacci sequence
-        fib = [1, 1]
-        for i in range(8):
-            fib.append(fib[-1] + fib[-2])
+        fib = [0, 1]
+        for i in range(2, n):
+            fib.append(fib[i-1] + fib[i-2])
         
-        # Create spiral
-        theta = np.linspace(0, 4 * np.pi, 1000)
-        r = np.exp(0.3 * theta)
+        # Display sequence with animation
+        sequence_placeholder = st.empty()
+        chart_placeholder = st.empty()
         
-        x = r * np.cos(theta)
-        y = r * np.sin(theta)
+        for i in range(2, len(fib)):
+            current_fib = fib[:i+1]
+            
+            # Show current sequence
+            sequence_placeholder.write(f"**Fibonacci Sequence:** {current_fib}")
+            
+            # Create chart data
+            df = pd.DataFrame({
+                'Index': list(range(len(current_fib))),
+                'Fibonacci': current_fib
+            })
+            
+            chart_placeholder.line_chart(df.set_index('Index')['Fibonacci'])
+            time.sleep(0.5)
         
-        fig.add_trace(go.Scatter(
-            x=x, y=y,
-            mode='lines',
-            line=dict(color='gold', width=3),
-            name='Fibonacci Spiral'
-        ))
-        
-        # Add Fibonacci numbers as points
-        for i, num in enumerate(fib[:8]):
-            angle = i * np.pi / 4
-            radius = num / 5
-            fig.add_trace(go.Scatter(
-                x=[radius * np.cos(angle)],
-                y=[radius * np.sin(angle)],
-                mode='markers+text',
-                marker=dict(size=15, color='red'),
-                text=[str(num)],
-                textposition="middle center",
-                name=f"F({i}) = {num}"
-            ))
-        
-        fig.update_layout(
-            title="Interactive Fibonacci Spiral",
-            showlegend=True,
-            height=500,
-            xaxis=dict(scaleanchor="y", scaleratio=1)
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+        # Show golden ratio approximation
+        if len(fib) > 2:
+            ratios = [fib[i] / fib[i-1] for i in range(2, len(fib))]
+            st.write(f"**Golden Ratio Approximation:** {ratios[-1]:.6f}")
+            st.write(f"**Actual Golden Ratio:** {(1 + math.sqrt(5)) / 2:.6f}")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def create_interactive_skills():
     """Interactive skills section with progress bars and animations"""
@@ -395,35 +388,38 @@ def create_interactive_skills():
     
     # Animate skill bars
     for skill, level in skills_data[selected_category].items():
-        st.markdown(f"**{skill}**")
-        progress_placeholder = st.empty()
-        
-        # Animated progress bar
-        for i in range(0, level + 1, 5):
-            progress_placeholder.progress(i)
-            time.sleep(0.05)
-        
-        st.markdown(f"Level: {level}%")
-        st.markdown("---")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown(f"**{skill}**")
+            st.progress(level / 100)
+        with col2:
+            st.metric("Level", f"{level}%")
 
 def navigation_sidebar():
     """Create interactive navigation sidebar"""
     st.sidebar.markdown("# 🧭 Navigation")
     
     # Navigation buttons
-    pages = ["Home", "Projects", "Skills Lab", "Algorithms", "Contact"]
+    pages = ["🏠 Home", "🚀 Projects", "🧪 Skills Lab", "🔄 Algorithms", "📬 Contact"]
     
     for page in pages:
-        if st.sidebar.button(f"📍 {page}", key=f"nav_{page}"):
-            st.session_state.current_page = page
+        page_name = page.split(" ", 1)[1]  # Remove emoji for session state
+        if st.sidebar.button(page, key=f"nav_{page_name}"):
+            st.session_state.current_page = page_name
             st.rerun()
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🎮 Interactive Features")
     
-    if st.sidebar.button("🎲 Random Color Theme"):
-        colors = ["#667eea", "#f093fb", "#4facfe", "#43e97b", "#fa709a"]
-        st.session_state.theme_color = np.random.choice(colors)
+    if st.sidebar.button("🎲 Random Fact"):
+        facts = [
+            "🐍 Python was named after Monty Python!",
+            "🌐 The first website is still online!",
+            "💾 1 GB used to cost $10,000 in 1981!",
+            "🤖 AI can now write poetry and code!",
+            "🚀 There are over 8 billion devices connected to the internet!"
+        ]
+        st.sidebar.success(np.random.choice(facts))
     
     if st.sidebar.button("🎆 Celebration Mode"):
         st.balloons()
@@ -474,6 +470,39 @@ def render_home_page():
                 st.balloons()
             st.markdown(f"<p style='text-align: center; margin-top: 0.5rem;'>{text}</p>", unsafe_allow_html=True)
 
+    # About Me Section
+    st.markdown('<h2 class="section-header">🙋‍♂️ About Me</h2>', unsafe_allow_html=True)
+    
+    about_col1, about_col2 = st.columns([2, 1])
+    
+    with about_col1:
+        st.markdown("""
+        Welcome to my interactive portfolio! I'm a passionate Full Stack Developer and Data Scientist with over 5 years of experience 
+        in creating innovative web applications and extracting meaningful insights from complex datasets.
+
+        **🎓 Education:**
+        - Master's in Computer Science - Stanford University (2019)
+        - Bachelor's in Software Engineering - UC Berkeley (2017)
+
+        **💼 Background:**
+        I've worked with startups and Fortune 500 companies, helping them build scalable applications and implement 
+        data-driven solutions. My expertise spans from frontend development to backend systems and machine learning models.
+        """)
+    
+    with about_col2:
+        st.markdown("### 🏆 Achievements")
+        achievements = [
+            "🥇 Best Innovation Award 2023",
+            "📱 Published 3 mobile apps",
+            "🌟 5k+ GitHub stars",
+            "📝 Tech blogger with 50k+ readers",
+            "🎤 Speaker at 10+ conferences"
+        ]
+        
+        for achievement in achievements:
+            if st.button(achievement, key=f"achieve_{achievement}"):
+                st.success(f"Thanks for your interest in: {achievement}")
+
 def render_projects_page():
     """Render interactive projects page"""
     st.markdown('<h2 class="section-header">🚀 Interactive Project Showcase</h2>', unsafe_allow_html=True)
@@ -508,13 +537,14 @@ def render_projects_page():
             
             # Interactive feature showcase
             if st.button("⚡ Show Interactive Features", key="features1"):
-                st.markdown("""
-                **🔥 Interactive Features:**
-                - Real-time cart updates
-                - Dynamic product filtering
-                - Live chat support
-                - One-click checkout
-                """)
+                features = [
+                    "✅ Real-time cart updates",
+                    "✅ Dynamic product filtering", 
+                    "✅ Live chat support",
+                    "✅ One-click checkout"
+                ]
+                for feature in features:
+                    st.write(feature)
 
     with project_tabs[1]:
         st.markdown("### 📊 Data Analytics Dashboard")
@@ -525,9 +555,8 @@ def render_projects_page():
             dates = pd.date_range('2024-01-01', periods=30, freq='D')
             data = np.random.randn(30).cumsum() + 100
             
-            fig = px.line(x=dates, y=data, title="Sample Analytics Dashboard")
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            df = pd.DataFrame({'Date': dates, 'Value': data})
+            st.line_chart(df.set_index('Date')['Value'])
             
             st.success("🎯 Interactive demo loaded!")
 
@@ -540,36 +569,47 @@ def render_projects_page():
             user_input = st.chat_input("Type your message...")
             if user_input:
                 st.chat_message("user").write(user_input)
-                st.chat_message("assistant").write(f"Thanks for your message: '{user_input}'. This is a demo response!")
+                responses = [
+                    f"Thanks for your message: '{user_input}'. That's interesting!",
+                    f"I understand you mentioned '{user_input}'. How can I help with that?",
+                    f"Great question about '{user_input}'! Let me think about that.",
+                ]
+                st.chat_message("assistant").write(np.random.choice(responses))
 
 def render_skills_lab():
     """Interactive skills laboratory"""
     st.markdown('<h2 class="section-header">🧪 Interactive Skills Laboratory</h2>', unsafe_allow_html=True)
     
-    # Skill categories with interactive elements
-    skill_categories = st.tabs(["💻 Programming", "🔬 Data Science", "🎨 Creative", "🛠️ Tools"])
+    create_interactive_skills()
     
-    with skill_categories[0]:
-        st.markdown("### Programming Skills Assessment")
-        
-        languages = ["Python", "JavaScript", "Java", "C++", "Go"]
-        selected_lang = st.selectbox("Test your knowledge in:", languages)
-        
-        if st.button(f"🎯 Take {selected_lang} Quiz", key=f"quiz_{selected_lang}"):
-            st.markdown(f"""
-            **{selected_lang} Knowledge Test:**
-            
-            **Question 1:** What is the time complexity of binary search?
-            """)
-            
-            answer = st.radio("Choose your answer:", ["O(n)", "O(log n)", "O(n²)", "O(1)"], key="q1")
-            
-            if st.button("Submit Answer", key="submit_quiz"):
-                if answer == "O(log n)":
-                    st.success("🎉 Correct! You know your algorithms!")
-                    st.balloons()
-                else:
-                    st.error("❌ Incorrect. The answer is O(log n)")
+    # Add interactive quiz section
+    st.markdown("---")
+    st.markdown("### 🎯 Quick Knowledge Quiz")
+    
+    questions = {
+        "What is the time complexity of binary search?": {
+            "options": ["O(n)", "O(log n)", "O(n²)", "O(1)"],
+            "correct": "O(log n)"
+        },
+        "Which Python framework is best for web development?": {
+            "options": ["Django", "Flask", "FastAPI", "All are good choices"],
+            "correct": "All are good choices"
+        },
+        "What does API stand for?": {
+            "options": ["Application Programming Interface", "Advanced Program Integration", "Automated Process Integration", "Application Process Interface"],
+            "correct": "Application Programming Interface"
+        }
+    }
+    
+    question = st.selectbox("Choose a question:", list(questions.keys()))
+    answer = st.radio("Your answer:", questions[question]["options"])
+    
+    if st.button("Submit Answer", key="quiz_submit"):
+        if answer == questions[question]["correct"]:
+            st.success("🎉 Correct! Well done!")
+            st.balloons()
+        else:
+            st.error(f"❌ Incorrect. The correct answer is: {questions[question]['correct']}")
 
 def render_algorithms_page():
     """Interactive algorithms page"""
@@ -587,17 +627,16 @@ def render_contact_page():
         st.markdown("### 📞 Connect With Me")
         
         # Interactive contact buttons
-        if st.button("📧 Send Email", key="email_btn"):
-            st.success("✉️ Email client opened! (mailto:john.doe@email.com)")
+        contact_methods = [
+            ("📧 Send Email", "✉️ Email client opened! (mailto:john.doe@email.com)"),
+            ("💼 LinkedIn Profile", "🔗 LinkedIn opened in new tab!"),
+            ("💻 GitHub Portfolio", "🐱 GitHub profile opened!"),
+            ("📱 Schedule Call", "📅 Calendar booking opened!")
+        ]
         
-        if st.button("💼 LinkedIn Profile", key="linkedin_btn"):
-            st.success("🔗 LinkedIn opened in new tab!")
-        
-        if st.button("💻 GitHub Portfolio", key="github_btn"):
-            st.success("🐱 GitHub profile opened!")
-        
-        if st.button("📱 Schedule Call", key="call_btn"):
-            st.success("📅 Calendar booking opened!")
+        for button_text, success_msg in contact_methods:
+            if st.button(button_text, key=f"contact_{button_text}"):
+                st.success(success_msg)
     
     with contact_col2:
         st.markdown("### 💌 Quick Message")
@@ -605,6 +644,7 @@ def render_contact_page():
         with st.form("contact_form"):
             name = st.text_input("Your Name")
             email = st.text_input("Your Email")
+            subject = st.selectbox("Subject", ["General Inquiry", "Job Opportunity", "Collaboration", "Other"])
             message = st.text_area("Your Message")
             
             submitted = st.form_submit_button("🚀 Send Message")
@@ -613,8 +653,15 @@ def render_contact_page():
                 if name and email and message:
                     st.success("🎉 Message sent successfully!")
                     st.balloons()
+                    
+                    # Show confirmation details
+                    with st.expander("📋 Message Details"):
+                        st.write(f"**Name:** {name}")
+                        st.write(f"**Email:** {email}")
+                        st.write(f"**Subject:** {subject}")
+                        st.write(f"**Message:** {message}")
                 else:
-                    st.error("❌ Please fill in all fields")
+                    st.error("❌ Please fill in all required fields")
 
 def main():
     """Main application with navigation"""
@@ -639,25 +686,32 @@ def main():
     
     with footer_col1:
         if st.button("🎨 Change Theme"):
-            st.success("🎨 Theme changed! (Demo)")
+            themes = ["🌞 Light Mode", "🌙 Dark Mode", "🌈 Colorful", "💼 Professional"]
+            st.success(f"🎨 Theme changed to: {np.random.choice(themes)}")
     
     with footer_col2:
         if st.button("📊 View Analytics"):
             st.info("📈 Portfolio analytics: 1,234 views this month!")
+            
+            # Show fake analytics
+            with st.expander("📊 Detailed Analytics"):
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Total Views", "1,234", "12%")
+                col2.metric("Unique Visitors", "892", "8%")
+                col3.metric("Avg. Time", "3m 45s", "15%")
     
     with footer_col3:
         if st.button("💝 Give Feedback"):
-            st.success("💌 Feedback form opened!")
+            st.success("💌 Thank you for your interest in providing feedback!")
+            
+            with st.expander("💬 Quick Feedback"):
+                rating = st.select_slider("Rate this portfolio:", ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"])
+                if st.button("Submit Rating"):
+                    st.success(f"Thanks for the {rating} rating!")
     
     st.markdown("""
     <div style="text-align: center; padding: 2rem; color: #666;">
         <p>© 2024 John Doe. Built with ❤️ using Streamlit</p>
         <p>✨ Interactive Portfolio - Click, Explore, Enjoy! ✨</p>
     </div>
-    """, unsafe_allow_html=True)
-
-# Required import for pandas (used in projects demo)
-import pandas as pd
-
-if __name__ == "__main__":
-    main()
+    ""
