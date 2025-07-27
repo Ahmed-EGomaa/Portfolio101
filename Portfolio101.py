@@ -85,8 +85,14 @@ def create_download_link(file_path, download_filename):
         b64 = base64.b64encode(bytes_data).decode()
         href = f'<a href="data:application/pdf;base64,{b64}" download="{download_filename}" class="download-button">📄 Download Resume</a>'
         return href
-    except FileNotFoundError:
-        return '<p style="color: red;">Resume file not found. Please add your resume.pdf to the assets folder.</p>'
+    except (FileNotFoundError, OSError):
+        return '''
+        <div style="padding: 1rem; background-color: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <p style="margin: 0; color: #856404;">
+                📄 <strong>Resume Download:</strong> Add your resume.pdf file to the assets folder to enable download functionality.
+            </p>
+        </div>
+        '''
 
 def main():
     # Header Section
@@ -105,8 +111,15 @@ def main():
         try:
             profile_img = Image.open("assets/profile.jpg")
             st.image(profile_img, width=300, caption="Profile Picture")
-        except FileNotFoundError:
-            st.info("📸 Add your profile picture as 'profile.jpg' in the assets folder")
+        except (FileNotFoundError, OSError):
+            # Display a placeholder if image is not found
+            st.markdown("""
+            <div style="text-align: center; padding: 2rem; background-color: #f0f2f6; border-radius: 10px; margin: 1rem 0;">
+                <div style="font-size: 4rem;">👨‍💻</div>
+                <p style="color: #666; margin-top: 1rem;">Profile Picture</p>
+                <small style="color: #999;">Add your profile.jpg to the assets folder</small>
+            </div>
+            """, unsafe_allow_html=True)
     
     # Quick Stats
     st.markdown("### 📊 Quick Stats")
@@ -222,8 +235,14 @@ def main():
         try:
             project1_img = Image.open("assets/project1.jpg")
             st.image(project1_img, caption="E-commerce Platform")
-        except FileNotFoundError:
-            st.info("🖼️ Add project1.jpg to assets folder")
+        except (FileNotFoundError, OSError):
+            # Display a placeholder image
+            st.markdown("""
+            <div style="text-align: center; padding: 3rem 1rem; background-color: #f0f2f6; border-radius: 8px; margin: 1rem 0;">
+                <div style="font-size: 3rem;">🛒</div>
+                <p style="color: #666; margin: 0.5rem 0;">E-commerce Platform</p>
+            </div>
+            """, unsafe_allow_html=True)
     
     with proj_col2:
         st.markdown("""
@@ -269,8 +288,14 @@ def main():
         try:
             project2_img = Image.open("assets/project2.jpg")
             st.image(project2_img, caption="Analytics Dashboard")
-        except FileNotFoundError:
-            st.info("🖼️ Add project2.jpg to assets folder")
+        except (FileNotFoundError, OSError):
+            # Display a placeholder image
+            st.markdown("""
+            <div style="text-align: center; padding: 3rem 1rem; background-color: #f0f2f6; border-radius: 8px; margin: 1rem 0;">
+                <div style="font-size: 3rem;">📊</div>
+                <p style="color: #666; margin: 0.5rem 0;">Analytics Dashboard</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -281,8 +306,14 @@ def main():
         try:
             project3_img = Image.open("assets/project3.jpg")
             st.image(project3_img, caption="AI Chatbot")
-        except FileNotFoundError:
-            st.info("🖼️ Add project3.jpg to assets folder")
+        except (FileNotFoundError, OSError):
+            # Display a placeholder image
+            st.markdown("""
+            <div style="text-align: center; padding: 3rem 1rem; background-color: #f0f2f6; border-radius: 8px; margin: 1rem 0;">
+                <div style="font-size: 3rem;">🤖</div>
+                <p style="color: #666; margin: 0.5rem 0;">AI Chatbot</p>
+            </div>
+            """, unsafe_allow_html=True)
     
     with proj3_col2:
         st.markdown("""
