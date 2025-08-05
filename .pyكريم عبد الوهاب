@@ -6,7 +6,7 @@ from urllib.parse import urljoin, urlparse
 
 # Page configuration
 st.set_page_config(
-    page_title="Website HTML Viewer",
+    page_title="ٍSlash News",
     page_icon="🌐",
     layout="wide",
     initial_sidebar_state="collapsed"
