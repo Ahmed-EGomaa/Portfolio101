@@ -25,7 +25,7 @@ def fetch_website(url):
         return f"<h1>Error loading website</h1><p>{str(e)}</p>"
 
 # Main app
-st.title("🌐 Website Mirror")
+#st.title("🌐 Website Mirror")
 
 # Fetch and display the website
 with st.spinner("Loading website..."):
