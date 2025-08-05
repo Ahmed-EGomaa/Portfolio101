@@ -3,13 +3,13 @@ import requests
 
 # Configure the page
 st.set_page_config(
-    page_title="Website Mirror",
-    page_icon="🌐",
+    page_title="Slash News",
+    page_icon="سلاش نيوز",
     layout="wide"
 )
 
 # The website you want to mirror
-WEBSITE_URL = "https://example.com"  # Replace with your target website
+WEBSITE_URL = "https://slash-news.com/4243/"  # Replace with your target website
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def fetch_website(url):
