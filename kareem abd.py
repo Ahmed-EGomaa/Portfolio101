@@ -1,289 +1,38 @@
 import streamlit as st
 import requests
-from bs4 import BeautifulSoup
-import re
-from urllib.parse import urljoin, urlparse
 
-# Page configuration
+# Configure the page
 st.set_page_config(
-    page_title="ٍSlash News",
+    page_title="Website Mirror",
     page_icon="🌐",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide"
 )
 
-# Custom CSS for better styling
-st.markdown("""
-<style>
-    .main-header {
-        text-align: center;
-        color: #1f77b4;
-        margin-bottom: 2rem;
-    }
-    .url-input {
-        margin-bottom: 1rem;
-    }
-    .error-message {
-        background-color: #ffebee;
-        color: #c62828;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #c62828;
-    }
-    .success-message {
-        background-color: #e8f5e8;
-        color: #2e7d32;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #2e7d32;
-    }
-</style>
-""", unsafe_allow_html=True)
+# The website you want to mirror
+WEBSITE_URL = "https://example.com"  # Replace with your target website
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
-def fetch_website_content(url):
-    """Fetch website content with error handling"""
+def fetch_website(url):
+    """Fetch website content"""
     try:
-        # Add protocol if missing
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
-        
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        
-        return {
-            'success': True,
-            'content': response.text,
-            'status_code': response.status_code,
-            'url': response.url
-        }
-    except requests.exceptions.Timeout:
-        return {'success': False, 'error': 'Request timed out. The website took too long to respond.'}
-    except requests.exceptions.ConnectionError:
-        return {'success': False, 'error': 'Connection error. Please check the URL and your internet connection.'}
-    except requests.exceptions.HTTPError as e:
-        return {'success': False, 'error': f'HTTP error {e.response.status_code}: {e.response.reason}'}
+        return response.text
     except Exception as e:
-        return {'success': False, 'error': f'An error occurred: {str(e)}'}
+        return f"<h1>Error loading website</h1><p>{str(e)}</p>"
 
-def extract_content_info(html_content):
-    """Extract basic information from HTML content"""
-    soup = BeautifulSoup(html_content, 'html.parser')
-    
-    # Extract basic info
-    title = soup.find('title')
-    title_text = title.get_text().strip() if title else "No title found"
-    
-    # Count elements
-    paragraphs = len(soup.find_all('p'))
-    images = len(soup.find_all('img'))
-    links = len(soup.find_all('a'))
-    
-    return {
-        'title': title_text,
-        'paragraphs': paragraphs,
-        'images': images,
-        'links': links,
-        'content_length': len(html_content)
-    }
+# Main app
+st.title("🌐 Website Mirror")
 
-def main():
-    # Header
-    st.markdown('<h1 class="main-header">🌐 Website HTML Content Viewer</h1>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    Enter any website URL below to view its HTML content. You can see the rendered page, 
-    raw HTML source, or extract specific information.
-    """)
-    
-    # URL input
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        url = st.text_input(
-            "Website URL:",
-            placeholder="https://example.com or just example.com",
-            help="Enter the full URL or just the domain name"
-        )
-    
-    with col2:
-        st.write("") # Space for alignment
-        fetch_button = st.button("🔍 Fetch Content", type="primary")
-    
-    # Example URLs
-    with st.expander("📝 Try these example URLs"):
-        example_urls = [
-            "https://httpbin.org/html",
-            "https://example.com",
-            "https://news.ycombinator.com",
-            "https://github.com",
-            "https://stackoverflow.com"
-        ]
-        
-        cols = st.columns(len(example_urls))
-        for i, example_url in enumerate(example_urls):
-            with cols[i]:
-                if st.button(f"📄 {example_url.split('//')[1].split('/')[0]}", key=f"example_{i}"):
-                    st.session_state.example_url = example_url
+# Fetch and display the website
+with st.spinner("Loading website..."):
+    website_content = fetch_website(WEBSITE_URL)
 
-    # Use example URL if selected
-    if 'example_url' in st.session_state:
-        url = st.session_state.example_url
-        del st.session_state.example_url
-        st.rerun()
-    
-    # Main functionality
-    if (fetch_button or url) and url:
-        with st.spinner('Fetching website content...'):
-            result = fetch_website_content(url)
-        
-        if result['success']:
-            st.markdown('<div class="success-message">✅ Successfully fetched website content!</div>', 
-                       unsafe_allow_html=True)
-            
-            # Extract content information
-            content_info = extract_content_info(result['content'])
-            
-            # Display content information
-            col1, col2, col3, col4, col5 = st.columns(5)
-            with col1:
-                st.metric("📄 Title", "Found" if content_info['title'] != "No title found" else "None")
-            with col2:
-                st.metric("📝 Paragraphs", content_info['paragraphs'])
-            with col3:
-                st.metric("🖼️ Images", content_info['images'])
-            with col4:
-                st.metric("🔗 Links", content_info['links'])
-            with col5:
-                st.metric("📊 Size (chars)", f"{content_info['content_length']:,}")
-            
-            # Display title if found
-            if content_info['title'] != "No title found":
-                st.subheader(f"📄 Page Title: {content_info['title']}")
-            
-            # Tabs for different views
-            tab1, tab2, tab3, tab4 = st.tabs(["🖥️ Rendered Content", "📝 Raw HTML", "🔍 Content Analysis", "⚙️ Technical Info"])
-            
-            with tab1:
-                st.subheader("Rendered Website Content")
-                st.info("Note: Some websites may not render perfectly due to CORS policies or external resources.")
-                
-                # Height selector
-                height = st.slider("Display Height (pixels)", 400, 1200, 600, 50)
-                
-                try:
-                    st.components.v1.html(result['content'], height=height, scrolling=True)
-                except Exception as e:
-                    st.error(f"Error rendering content: {str(e)}")
-                    st.info("Try viewing the Raw HTML tab instead.")
-            
-            with tab2:
-                st.subheader("Raw HTML Source Code")
-                
-                # Search functionality
-                search_term = st.text_input("🔍 Search in HTML:", placeholder="Enter text to search...")
-                
-                if search_term:
-                    # Highlight search terms
-                    highlighted_content = result['content'].replace(
-                        search_term, 
-                        f"**{search_term}**"
-                    )
-                    st.code(highlighted_content, language='html', line_numbers=True)
-                else:
-                    st.code(result['content'], language='html', line_numbers=True)
-                
-                # Download button
-                st.download_button(
-                    label="📥 Download HTML",
-                    data=result['content'],
-                    file_name=f"website_content_{urlparse(result['url']).netloc}.html",
-                    mime="text/html"
-                )
-            
-            with tab3:
-                st.subheader("Content Analysis")
-                
-                soup = BeautifulSoup(result['content'], 'html.parser')
-                
-                # Extract and display different elements
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**📰 Headings Found:**")
-                    headings = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
-                    if headings:
-                        for heading in headings[:10]:  # Show first 10
-                            st.write(f"- **{heading.name.upper()}**: {heading.get_text().strip()[:100]}...")
-                    else:
-                        st.write("No headings found")
-                
-                with col2:
-                    st.write("**🔗 Links Found:**")
-                    links = soup.find_all('a', href=True)
-                    unique_links = list(set([link['href'] for link in links]))[:10]
-                    if unique_links:
-                        for link in unique_links:
-                            st.write(f"- {link}")
-                    else:
-                        st.write("No links found")
-                
-                # Meta tags
-                st.write("**🏷️ Meta Tags:**")
-                meta_tags = soup.find_all('meta')
-                if meta_tags:
-                    meta_data = {}
-                    for meta in meta_tags:
-                        if meta.get('name'):
-                            meta_data[meta.get('name')] = meta.get('content', '')
-                        elif meta.get('property'):
-                            meta_data[meta.get('property')] = meta.get('content', '')
-                    
-                    if meta_data:
-                        st.json(meta_data)
-                    else:
-                        st.write("No named meta tags found")
-                else:
-                    st.write("No meta tags found")
-            
-            with tab4:
-                st.subheader("Technical Information")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**🌐 Request Details:**")
-                    st.write(f"- **Final URL**: {result['url']}")
-                    st.write(f"- **Status Code**: {result['status_code']}")
-                    st.write(f"- **Content Length**: {len(result['content']):,} characters")
-                
-                with col2:
-                    st.write("**📊 HTML Structure:**")
-                    all_tags = [tag.name for tag in soup.find_all()]
-                    tag_counts = {}
-                    for tag in all_tags:
-                        tag_counts[tag] = tag_counts.get(tag, 0) + 1
-                    
-                    # Show most common tags
-                    sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-                    for tag, count in sorted_tags:
-                        st.write(f"- **{tag}**: {count}")
-        
-        else:
-            st.markdown(f'<div class="error-message">❌ {result["error"]}</div>', 
-                       unsafe_allow_html=True)
-            
-            st.markdown("""
-            **💡 Troubleshooting Tips:**
-            - Make sure the URL is correct and accessible
-            - Try adding `https://` at the beginning
-            - Some websites block automated requests
-            - Check if the website is currently online
-            """)
+# Display the mirrored content
+st.components.v1.html(website_content, height=800, scrolling=True)
 
-if __name__ == "__main__":
-    main()
+# Optional: Show the source URL
+st.info(f"Mirroring content from: {WEBSITE_URL}")
